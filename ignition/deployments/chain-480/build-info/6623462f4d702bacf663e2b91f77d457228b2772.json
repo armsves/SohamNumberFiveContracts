@@ -1,0 +1,39 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "6623462f4d702bacf663e2b91f77d457228b2772",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/UserRegistry.sol": "project/contracts/UserRegistry.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "evmVersion": "cancun",
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/UserRegistry.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\n\n/**\n * @title UserRegistry\n * @dev Contract for storing and retrieving user profiles\n */\ncontract UserRegistry {\n    struct User {\n        string username;\n        string profileUrl;\n        bool isVerified;\n        bool exists;\n    }\n\n    mapping(string => User) private users;\n    mapping(address => string) private addressToUsername;\n    \n    event UserRegistered(string indexed username, address indexed userAddress, string profileUrl);\n    event UserVerified(string indexed username, bool isVerified);\n    event ProfileUpdated(string indexed username, string newProfileUrl);\n\n    modifier onlyExistingUser(string memory _username) {\n        require(users[_username].exists, \"User does not exist\");\n        _;\n    }\n\n    modifier onlyUserOwner(string memory _username) {\n        require(\n            keccak256(abi.encodePacked(addressToUsername[msg.sender])) == \n            keccak256(abi.encodePacked(_username)),\n            \"Not the owner of this username\"\n        );\n        _;\n    }\n\n    /**\n     * @dev Register a new user\n     * @param _username The username to register\n     * @param _profileUrl The profile URL for the user\n     */\n    function registerUser(string memory _username, string memory _profileUrl) external {\n        require(bytes(_username).length > 0, \"Username cannot be empty\");\n        require(!users[_username].exists, \"Username already exists\");\n        require(bytes(addressToUsername[msg.sender]).length == 0, \"Address already has a username\");\n\n        users[_username] = User({\n            username: _username,\n            profileUrl: _profileUrl,\n            isVerified: false,\n            exists: true\n        });\n\n        addressToUsername[msg.sender] = _username;\n\n        emit UserRegistered(_username, msg.sender, _profileUrl);\n    }\n\n    /**\n     * @dev Fetch user information by username\n     * @param _username The username to look up\n     * @return username The user's username\n     * @return profileUrl The user's profile URL\n     * @return isVerified Whether the user is verified\n     * @return exists Whether the user exists\n     */\n    function getUser(string memory _username) \n        external \n        view \n        returns (\n            string memory username,\n            string memory profileUrl,\n            bool isVerified,\n            bool exists\n        ) \n    {\n        User memory user = users[_username];\n        return (user.username, user.profileUrl, user.isVerified, user.exists);\n    }\n\n    /**\n     * @dev Check if a user exists\n     * @param _username The username to check\n     * @return Whether the user exists\n     */\n    function userExists(string memory _username) external view returns (bool) {\n        return users[_username].exists;\n    }\n\n    /**\n     * @dev Update profile URL (only by user owner)\n     * @param _username The username to update\n     * @param _newProfileUrl The new profile URL\n     */\n    function updateProfileUrl(string memory _username, string memory _newProfileUrl) \n        external \n        onlyExistingUser(_username) \n        onlyUserOwner(_username) \n    {\n        users[_username].profileUrl = _newProfileUrl;\n        emit ProfileUpdated(_username, _newProfileUrl);\n    }\n\n    /**\n     * @dev Set verification status (only contract owner can verify users)\n     * @param _username The username to verify/unverify\n     * @param _isVerified The verification status\n     */\n    function setVerificationStatus(string memory _username, bool _isVerified) \n        external \n        onlyExistingUser(_username) \n    {\n        // Note: You may want to add access control here (e.g., onlyOwner modifier)\n        users[_username].isVerified = _isVerified;\n        emit UserVerified(_username, _isVerified);\n    }\n\n    /**\n     * @dev Get username by address\n     * @param _address The address to look up\n     * @return The username associated with the address\n     */\n    function getUsernameByAddress(address _address) external view returns (string memory) {\n        return addressToUsername[_address];\n    }\n}"
+      }
+    }
+  }
+}
